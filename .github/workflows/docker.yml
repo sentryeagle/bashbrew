@@ -1,0 +1,73 @@
+name: "Docker"
+
+on:
+    workflow_dispatch:
+    schedule:
+        - cron: "0 0 * * *" # every day at midnight
+
+permissions:
+    contents: "write"
+    packages: "write"
+
+env:
+    OCI_REGISTRY: "ghcr.io"
+    OCI_REGISTRY_USERNAME: "${{ github.repository_owner }}"
+    OCI_REGISTRY_PASSWORD: "${{ secrets.GITHUB_TOKEN }}"
+    
+    OCI_TITLE: "bashbrew"
+    OCI_DESCRIPTION: "Canonical Build Tool for the Official Docker Images."
+    OCI_REPOSITORY: "${{ github.repository }}"
+    OCI_SOURCE: "${{ github.repositoryUrl }}"
+    OCI_LICENSE: "EUPL-1.2" # SPDX format
+    OCI_VENDOR: "${{ github.repository_owner }}"
+
+jobs:
+    push:
+        runs-on: "ubuntu-latest"
+
+        steps:
+            - name: "GitHub: Checkout Repository"
+              uses: "actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683" # v4.2.2
+
+            - name: "Upstream: Fetch Latest Version [git]"
+              id: "upstream"
+              shell: "bash"
+              run: |
+                echo "latest_version=$(git -c 'versionsort.suffix=-' ls-remote --exit-code --refs --sort='version:refname' --tags https://github.com/docker-library/bashbrew.git '*.*.*' | awk -F/ 'END{print$NF}' | sed 's/^v//')" >> "$GITHUB_OUTPUT"
+
+            - name: "Downstream: Fetch Latest Version [ghcr]"
+              id: "downstream"
+              shell: "bash"
+              continue-on-error: true
+              run: |
+                echo "${{ steps.upstream.outputs.latest_version }}"
+
+                curl \
+                    --silent \
+                    --fail \
+                    --head \
+                    --header "Authorization: Bearer $(echo ${{ env.OCI_REGISTRY_PASSWORD }} | base64 )" \
+                    https://${{ env.OCI_REGISTRY }}/v2/${{ env.OCI_REPOSITORY }}/manifests/${{ steps.upstream.outputs.latest_version }}
+
+            - name: "Docker: Login"
+              if: ${{ steps.downstream.outcome == 'failure' }}
+              shell: "bash"
+              run:
+                echo "${{ env.OCI_REGISTRY_PASSWORD }}" | docker login --username=${{ env.OCI_REGISTRY_USERNAME }} --password-stdin ${{ env.OCI_REGISTRY }}
+
+            - name: "Docker: Build & Push"
+              if: ${{ steps.downstream.outcome == 'failure' }}
+              shell: "bash"
+              run: |
+                make push
+              env:
+                OCI_REGISTRY: "${{ env.OCI_REGISTRY }}"
+                OCI_REPOSITORY: "${{ env.OCI_REPOSITORY }}"
+
+                OCI_TITLE: ${{ env.OCI_TITLE }}
+                OCI_DESCRIPTION: ${{ env.OCI_DESCRIPTION }}
+                OCI_SOURCE: ${{ env.OCI_SOURCE }}
+                OCI_LICENSE: ${{ env.OCI_LICENSE }}
+                OCI_VENDOR: ${{ env.OCI_VENDOR }}
+
+                OCI_TAG: "${{ steps.upstream.outputs.latest_version }}"

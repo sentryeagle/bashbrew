@@ -1,0 +1,25 @@
+name: "GitHub: Reactivate"
+
+on:
+    workflow_dispatch:
+    schedule:
+        - cron: "0 0 * * *" # every day at midnight
+
+permissions:
+    contents: "write"
+
+jobs:
+    reactivate:
+        runs-on: "ubuntu-latest"
+
+        steps:
+            - name: "GitHub: Checkout Repository"
+              uses: "actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683"
+
+            - name: "Reactivate Repository"
+              uses: "custom-workflows/reactivate@latest"
+              with:
+                commit_message: "github-actions: Reactivate repository"
+                committer_username: "GitHub Actions [Bot]"
+                committer_email: "github-actions[bot]@users.noreply.github.com"
+                days_elapsed: 50

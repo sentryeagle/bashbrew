@@ -1,0 +1,57 @@
+{
+    "name": "bashbrew",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "context": "."
+    },
+    "features": {
+        "ghcr.io/devcontainers/features/common-utils:2": {
+            "installZsh": "true",
+            "upgradePackages": "true",
+            "username": "automatic"
+        },
+        "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+        "ghcr.io/devcontainers/features/git:1": {
+            "version": "latest",
+            "ppa": "false"
+        }
+    },
+    "remoteUser": "vscode",
+    "customizations": {
+        "jetbrains": {
+            "backend": "IntelliJ"
+        },
+        "vscode": {
+            "extensions": [
+                "github.vscode-github-actions",
+                "docker.docker",
+                "ms-vscode.makefile-tools"
+            ],
+            "settings": {
+                "editor.rulers": [
+                    120
+                ],
+                "files.autoSave": "afterDelay"
+            }
+        }
+    },
+    // ToDo:
+    //
+    // When a functional SSH agent is running, you can execute 'ssh-add -l' inside a DevContainer to verify the 
+    // correct identity is available. Additionally, you can authenticate with GitHub using 'ssh -T git@github.com'.
+    // 
+    // However, currently, the SSH keys in the host's '~/.ssh' directory are not automatically forwarded to the 
+    // DevContainer, even though SSH agent forwarding works - verify with 'ls -a ~/.ssh' and observe the missing keys. 
+    // As a result, using SSH with Git is not possible without manually mounting the '~/.ssh' directory.
+    // 
+    // If no alternative solution is found, consider implementing "Proposal: enable optional bind mounts" [1] when it 
+    // becomes available to avoid issues when a user's '~/.ssh' directory does not exist.
+    // 
+    // Link: https://github.com/devcontainers/spec/issues/132 [1]
+    "mounts": [
+        "source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssh,target=/home/vscode/.ssh,readonly,type=bind"
+    ],
+    "initializeCommand": {
+        "mkdir-ssh": "mkdir -p ${localEnv:HOME}${localEnv:USERPROFILE}/.ssh || true"
+    }
+}

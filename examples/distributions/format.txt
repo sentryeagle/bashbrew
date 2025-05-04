@@ -1,0 +1,4 @@
+{{- range .Entries -}}
+	{{- $.Tags "" false . | json -}}
+	{{- "\n" -}}
+{{- end -}}
